@@ -84,5 +84,52 @@ class UserController {
           res.send({ "status": "failed", "message": "All Fields are Required" })
         }
       }
+
+    static loggedUser=async(req,res)=>{
+        res.send({"user":req.user})
+    }
+    static sendUserResetEmail=async (req,res)=>{
+        const {email} =req.body
+        if(email){
+            const secret=user._id+process.env.JWT_SECRET_KEY
+            if (user){
+                const user=await UserModel.findOne({email:email});
+                const token=JWT.sign({userID:user._id},secret,{expiresIn:'15m'})
+                const link=`http://127.0.0.1:3000/api/user/reset/${user._id}/${token}`;
+                console.log(link);
+                res.send({"status":"success","message":"Password reset email sent... please check your email"})
+            }else{
+                res.send({"status":"failed","message":"Email field is required"})
+            }
+        }else{
+            res.send({"status":"failed","message":"Email does'nt exists"})
+        }
+    }
+
+    static userPasswordReset=async(req,res)=>{
+        const {password,password_conf}=req.body
+        const {id,token}=req.params
+        const user=await UserModel.findById(id)
+        const new_secret=user._id+process.env.JWT_SECRET_KEY
+        try {
+            JWT.verify(token,new_secret)
+            if (password && password_conf) {
+                if (password!==password_conf) {
+                    res.send({"status":"failed","message":"Password and confirm password does'nt match"})
+                } else {
+                    const salt=await bcrypt.genSalt(10)
+                    const newHashPassword=await bcrypt.hash(password,salt)
+                    await UserModel.findByIdAndUpdate(user._id,{$set:{
+                        password:newHashPassword
+                    }})
+                    res.send({"status":"failed","message":"Password reset successfullly"})
+                }
+            } else {
+                
+            }
+        } catch (error) {
+            res.send({"status":"failed","message":"Invalid Token"})
+        }
+    }
 }
 export default UserController
