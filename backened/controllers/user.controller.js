@@ -96,8 +96,16 @@ class UserController {
                 const user=await UserModel.findOne({email:email});
                 const token=JWT.sign({userID:user._id},secret,{expiresIn:'15m'})
                 const link=`http://127.0.0.1:3000/api/user/reset/${user._id}/${token}`;
+                //Send Email
+                let info=await transporter.sendMail({
+                    from:process.env.EMAIL_FROM,
+                    to:user.email,
+                    subject:"Password Reset Link",
+                    html:`<a href=${link}>Click Here</a> to Reset Your Password.`
+                }) 
+
                 console.log(link);
-                res.send({"status":"success","message":"Password reset email sent... please check your email"})
+                res.send({"status":"success","message":"Password reset email sent... please check your email","info":info})
             }else{
                 res.send({"status":"failed","message":"Email field is required"})
             }
